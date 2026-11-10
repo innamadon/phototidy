@@ -1,0 +1,80 @@
+name: Build iPhone app
+
+# Builds Photo Tidy on one of GitHub's Macs and attaches PhotoTidy.ipa
+# to the "Latest build" release, ready to install with AltStore.
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project PhotoTidy.xcodeproj \
+            -scheme PhotoTidy \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build.log
+
+      - name: Summarise errors (only if the build failed)
+        if: failure()
+        run: |
+          {
+            echo "## Build failed"
+            echo "Copy everything in the box below and send it to Claude."
+            echo '```'
+            grep -E "(error:|fatal error|BUILD FAILED)" build.log | sort -u | head -n 80 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Package PhotoTidy.ipa
+        run: |
+          APP="build/Build/Products/Release-iphoneos/PhotoTidy.app"
+          test -d "$APP"
+          rm -rf Payload && mkdir Payload
+          cp -R "$APP" Payload/
+          zip -qry PhotoTidy.ipa Payload
+          ls -lh PhotoTidy.ipa
+
+      - name: Keep a copy on this run
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhotoTidy-ipa
+          path: PhotoTidy.ipa
+
+      - name: Publish to the "Latest build" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view latest >/dev/null 2>&1; then
+            gh release upload latest PhotoTidy.ipa --clobber
+          else
+            gh release create latest PhotoTidy.ipa \
+              --title "Latest build" \
+              --notes "Unsigned PhotoTidy.ipa. Install it with AltStore or SideStore (see README)." \
+              --target "$GITHUB_SHA"
+          fi
+          {
+            echo "## Build succeeded"
+            echo "Download **PhotoTidy.ipa** from the repository's **Releases → Latest build** page."
+          } >> "$GITHUB_STEP_SUMMARY"
