@@ -9,37 +9,48 @@ struct PhoneTab: View {
     @State private var confirmFiles = false
 
     var body: some View {
-        @Bindable var model = model
-
+        let fileCount: Int = model.files.selected.count
+        let deleteTitle: String = "Delete \(fileCount) files?"
+        let deleteButton: String = "Delete \(fileCount)"
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                ScreenHeader(title: "Phone", subtitle: "Beyond your photos")
-                SectionChips(items: PhoneSection.allCases, selection: $model.phoneSection)
-                switch model.phoneSection {
-                case .files:
-                    FilesSection(cleaner: model.files)
-                case .contacts:
-                    ContactsSection(cleaner: model.contacts)
-                case .reminders:
-                    RemindersSection(cleaner: model.calendar)
-                case .checklist:
-                    ChecklistSection(checklist: model.checklist)
-                }
-            }
-            .padding(.horizontal, 18)
-            .padding(.bottom, 24)
+            scrollContent
         }
         .tidyScreen()
         .safeAreaInset(edge: .bottom, spacing: 0) {
             filesBar
         }
         .withTabBar()
-        .confirmationDialog("Delete \(model.files.selected.count) files?", isPresented: $confirmFiles, titleVisibility: .visible) {
-            Button("Delete \(model.files.selected.count)", role: .destructive) {
+        .confirmationDialog(deleteTitle, isPresented: $confirmFiles, titleVisibility: .visible) {
+            Button(deleteButton, role: .destructive) {
                 Task { await model.files.deleteSelected() }
             }
         } message: {
             Text("Files are deleted from that folder straight away. Files in iCloud Drive can usually be brought back from Recently Deleted in the Files app for 30 days; files kept only on this iPhone can't.")
+        }
+    }
+
+    private var scrollContent: some View {
+        @Bindable var model = model
+        return VStack(alignment: .leading, spacing: 18) {
+            ScreenHeader(title: "Phone", subtitle: "Beyond your photos")
+            SectionChips(items: PhoneSection.allCases, selection: $model.phoneSection)
+            sectionView
+        }
+        .padding(.horizontal, 18)
+        .padding(.bottom, 24)
+    }
+
+    @ViewBuilder
+    private var sectionView: some View {
+        switch model.phoneSection {
+        case .files:
+            FilesSection(cleaner: model.files)
+        case .contacts:
+            ContactsSection(cleaner: model.contacts)
+        case .reminders:
+            RemindersSection(cleaner: model.calendar)
+        case .checklist:
+            ChecklistSection(checklist: model.checklist)
         }
     }
 
@@ -51,7 +62,7 @@ struct PhoneTab: View {
                 confirmFiles = true
             } label: {
                 HStack(spacing: 8) {
-                    Text(files.selected.count == 1 ? "Delete 1 file" : "Delete \(files.selected.count) files")
+                    Text("Delete " + counted(files.selected.count, "file", "files"))
                     Text(formatBytes(files.bytes(of: files.selected))).opacity(0.65)
                 }
             }
@@ -278,7 +289,7 @@ struct ContactsSection: View {
 
             if !cleaner.groups.isEmpty {
                 HStack {
-                    Text(cleaner.groups.count == 1 ? "1 person" : "\(cleaner.groups.count) people").eyebrow()
+                    Text(counted(cleaner.groups.count, "person", "people")).eyebrow()
                     Spacer()
                     Button("Merge all") { confirmAll = true }
                         .buttonStyle(QuietButtonStyle())

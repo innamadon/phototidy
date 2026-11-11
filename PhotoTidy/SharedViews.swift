@@ -145,44 +145,72 @@ struct SelectionSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("\(selected.intersection(visibleIDs).count) marked")
-                    .eyebrow()
-                Spacer()
-                Button(allSelected ? "Unmark all" : "Mark all") {
-                    withAnimation(Tidy.quick) {
-                        if allSelected {
-                            selected.subtract(visibleIDs)
-                        } else {
-                            selected.formUnion(visibleIDs)
-                        }
-                    }
-                }
-                .buttonStyle(QuietButtonStyle())
-            }
-            .padding(.horizontal, 8)
-
-            LazyVGrid(columns: columns, spacing: 4) {
-                ForEach(items) { item in
-                    SelectableTile(item: item,
-                                   isSelected: selected.contains(item.id),
-                                   filing: filing,
-                                   isSent: sentIDs.contains(item.id),
-                                   caption: caption?(item))
-                        .onTapGesture {
-                            withAnimation(Tidy.quick) { toggle(item.id) }
-                        }
-                        .contextMenu {
-                            Button(selected.contains(item.id) ? "Unmark" : (filing ? "Mark to file" : "Mark to remove")) {
-                                toggle(item.id)
-                            }
-                        } preview: {
-                            LargePreview(asset: item.asset)
-                        }
-                }
-            }
+            header
+            grid
         }
         .sensoryFeedback(.selection, trigger: selected)
+    }
+
+    private var header: some View {
+        let marked: Int = selected.intersection(visibleIDs).count
+        let countText: String = "\(marked) marked"
+        let toggleTitle: String = allSelected ? "Unmark all" : "Mark all"
+        return HStack {
+            Text(countText).eyebrow()
+            Spacer()
+            Button(toggleTitle) {
+                toggleAll()
+            }
+            .buttonStyle(QuietButtonStyle())
+        }
+        .padding(.horizontal, 8)
+    }
+
+    private var grid: some View {
+        LazyVGrid(columns: columns, spacing: 4) {
+            ForEach(items) { item in
+                cell(item)
+            }
+        }
+    }
+
+    private func cell(_ item: LooseItem) -> some View {
+        let isSelected: Bool = selected.contains(item.id)
+        let isSent: Bool = sentIDs.contains(item.id)
+        let line: String? = caption?(item)
+        let title: String = menuTitle(isSelected: isSelected)
+        return SelectableTile(item: item,
+                              isSelected: isSelected,
+                              filing: filing,
+                              isSent: isSent,
+                              caption: line)
+            .onTapGesture {
+                withAnimation(Tidy.quick) { toggle(item.id) }
+            }
+            .contextMenu {
+                Button(title) {
+                    toggle(item.id)
+                }
+            } preview: {
+                LargePreview(asset: item.asset)
+            }
+    }
+
+    private func menuTitle(isSelected: Bool) -> String {
+        if isSelected { return "Unmark" }
+        return filing ? "Mark to file" : "Mark to remove"
+    }
+
+    private func toggleAll() {
+        let ids = visibleIDs
+        let all = allSelected
+        withAnimation(Tidy.quick) {
+            if all {
+                selected.subtract(ids)
+            } else {
+                selected.formUnion(ids)
+            }
+        }
     }
 
     private func toggle(_ id: String) {

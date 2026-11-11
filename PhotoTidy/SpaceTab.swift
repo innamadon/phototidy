@@ -14,37 +14,8 @@ struct SpaceTab: View {
     }
 
     var body: some View {
-        @Bindable var model = model
-
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                ScreenHeader(title: "Space", subtitle: "Heaviest first")
-                SectionChips(items: SpaceSection.allCases, selection: $model.spaceSection)
-
-                if model.isShrinking {
-                    WorkCard(title: "Shrinking…",
-                             done: model.shrinkDone,
-                             total: model.shrinkTotal,
-                             partial: model.shrinkItemFraction,
-                             onStop: { model.cancelShrink() })
-                }
-                if let report = model.shrinkReport {
-                    NoteCard(text: report) {
-                        model.shrinkReport = nil
-                    }
-                }
-
-                switch model.spaceSection {
-                case .videos:
-                    videosSection
-                case .recordings:
-                    recordingsSection
-                case .livePhotos:
-                    liveSection
-                }
-            }
-            .padding(.horizontal, 18)
-            .padding(.bottom, 24)
+            scrollContent
         }
         .tidyScreen()
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -52,34 +23,93 @@ struct SpaceTab: View {
         }
         .withTabBar()
         .confirmationDialog(dialogTitle, isPresented: dialogShown, titleVisibility: .visible, presenting: pending) { action in
-            switch action {
-            case .deleteVideos:
-                Button("\(model.removeVerb) \(currentVideoIDs.count)", role: .destructive) {
-                    let ids = currentVideoIDs
-                    let items = currentVideos
-                    Task { await model.removeSelected(ids, from: items) }
-                }
-            case .shrinkVideos:
-                Button("Shrink \(currentVideoIDs.count)") {
-                    model.shrinkVideos(currentVideoIDs, from: currentVideos)
-                }
-            case .shrinkLive:
-                Button("Shrink \(liveIDs.count)") {
-                    model.shrinkLivePhotos(liveIDs)
-                }
-            }
+            dialogButton(action)
         } message: { action in
             Text(dialogMessage(action))
         }
         .task(id: model.spaceSection) {
-            switch model.spaceSection {
-            case .videos:
-                if !model.videosLoaded { await model.loadVideos() }
-            case .recordings:
-                if !model.recordingsLoaded { await model.loadRecordings() }
-            case .livePhotos:
-                if !model.livePhotosLoaded { await model.loadLivePhotos() }
-            }
+            await loadCurrent()
+        }
+    }
+
+    private var scrollContent: some View {
+        @Bindable var model = model
+        return VStack(alignment: .leading, spacing: 18) {
+            ScreenHeader(title: "Space", subtitle: "Heaviest first")
+            SectionChips(items: SpaceSection.allCases, selection: $model.spaceSection)
+            statusCards
+            sectionView
+        }
+        .padding(.horizontal, 18)
+        .padding(.bottom, 24)
+    }
+
+    @ViewBuilder
+    private var statusCards: some View {
+        if model.isShrinking {
+            WorkCard(title: "Shrinking…",
+                     done: model.shrinkDone,
+                     total: model.shrinkTotal,
+                     partial: model.shrinkItemFraction,
+                     onStop: { model.cancelShrink() })
+        }
+        if let report = model.shrinkReport {
+            NoteCard(text: report, onClose: { model.shrinkReport = nil })
+        }
+    }
+
+    @ViewBuilder
+    private var sectionView: some View {
+        switch model.spaceSection {
+        case .videos:
+            videosSection
+        case .recordings:
+            recordingsSection
+        case .livePhotos:
+            liveSection
+        }
+    }
+
+    private func loadCurrent() async {
+        switch model.spaceSection {
+        case .videos:
+            if !model.videosLoaded { await model.loadVideos() }
+        case .recordings:
+            if !model.recordingsLoaded { await model.loadRecordings() }
+        case .livePhotos:
+            if !model.livePhotosLoaded { await model.loadLivePhotos() }
+        }
+    }
+
+    private func dialogButton(_ action: SpaceAction) -> some View {
+        let title: String
+        let role: ButtonRole?
+        switch action {
+        case .deleteVideos:
+            title = "\(model.removeVerb) \(currentVideoIDs.count)"
+            role = .destructive
+        case .shrinkVideos:
+            title = "Shrink \(currentVideoIDs.count)"
+            role = nil
+        case .shrinkLive:
+            title = "Shrink \(liveIDs.count)"
+            role = nil
+        }
+        return Button(title, role: role) {
+            perform(action)
+        }
+    }
+
+    private func perform(_ action: SpaceAction) {
+        switch action {
+        case .deleteVideos:
+            let ids = currentVideoIDs
+            let items = currentVideos
+            Task { await model.removeSelected(ids, from: items) }
+        case .shrinkVideos:
+            model.shrinkVideos(currentVideoIDs, from: currentVideos)
+        case .shrinkLive:
+            model.shrinkLivePhotos(liveIDs)
         }
     }
 
@@ -179,50 +209,65 @@ struct SpaceTab: View {
         if !model.isShrinking {
             switch model.spaceSection {
             case .videos, .recordings:
-                let ids = currentVideoIDs
-                if !ids.isEmpty {
-                    HStack(spacing: 10) {
-                        Button("Shrink \(ids.count)") {
-                            pending = .shrinkVideos
-                        }
-                        .buttonStyle(SoftButtonStyle())
-                        Button {
-                            pending = .deleteVideos
-                        } label: {
-                            HStack(spacing: 8) {
-                                Text("\(model.removeVerb) \(ids.count)")
-                                let bytes = model.bytes(of: ids, in: currentVideos)
-                                if bytes > 0 {
-                                    Text(formatBytes(bytes)).opacity(0.65)
-                                }
-                            }
-                        }
-                        .buttonStyle(PrimaryButtonStyle())
-                        .shadow(color: Tidy.shadow, radius: 12, x: 0, y: 8)
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 6)
-                }
+                videoBar
             case .livePhotos:
-                let ids = liveIDs
-                if !ids.isEmpty {
-                    let saving = model.livePhotos.filter { ids.contains($0.id) }.reduce(Int64(0)) { $0 + Int64($1.metric) }
-                    Button {
-                        pending = .shrinkLive
-                    } label: {
-                        HStack(spacing: 8) {
-                            Text(ids.count == 1 ? "Shrink 1 Live Photo" : "Shrink \(ids.count) Live Photos")
-                            if saving > 0 {
-                                Text(formatBytes(saving)).opacity(0.65)
-                            }
+                liveBar
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var videoBar: some View {
+        let ids = currentVideoIDs
+        if !ids.isEmpty {
+            let bytes: Int64 = model.bytes(of: ids, in: currentVideos)
+            let shrinkTitle: String = "Shrink \(ids.count)"
+            let removeTitle: String = "\(model.removeVerb) \(ids.count)"
+            HStack(spacing: 10) {
+                Button(shrinkTitle) {
+                    pending = .shrinkVideos
+                }
+                .buttonStyle(SoftButtonStyle())
+                Button {
+                    pending = .deleteVideos
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(removeTitle)
+                        if bytes > 0 {
+                            Text(formatBytes(bytes)).opacity(0.65)
                         }
                     }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .shadow(color: Tidy.shadow, radius: 12, x: 0, y: 8)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 6)
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .shadow(color: Tidy.shadow, radius: 12, x: 0, y: 8)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 6)
+        }
+    }
+
+    @ViewBuilder
+    private var liveBar: some View {
+        let ids = liveIDs
+        if !ids.isEmpty {
+            let saving: Int64 = model.livePhotos
+                .filter { ids.contains($0.id) }
+                .reduce(Int64(0)) { $0 + Int64($1.metric) }
+            let title: String = "Shrink " + counted(ids.count, "Live Photo", "Live Photos")
+            Button {
+                pending = .shrinkLive
+            } label: {
+                HStack(spacing: 8) {
+                    Text(title)
+                    if saving > 0 {
+                        Text(formatBytes(saving)).opacity(0.65)
+                    }
                 }
             }
+            .buttonStyle(PrimaryButtonStyle())
+            .shadow(color: Tidy.shadow, radius: 12, x: 0, y: 8)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 6)
         }
     }
 

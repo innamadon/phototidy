@@ -4,31 +4,14 @@ import Photos
 /// Blurry shots, exact duplicates, screenshots and receipts.
 struct ClutterTab: View {
     @Environment(AppModel.self) private var model
-    @State private var confirmFile = false
 
     var body: some View {
-        @Bindable var model = model
-
+        let target = removable
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                ScreenHeader(title: "Clutter", subtitle: "Photos that don't need to stay")
-                SectionChips(items: ClutterSection.allCases, selection: $model.clutterSection)
-                switch model.clutterSection {
-                case .blurry:
-                    BlurrySection()
-                case .duplicates:
-                    DuplicatesSection()
-                case .screenshots:
-                    ScreenshotsSection()
-                case .receipts:
-                    ReceiptsSection()
-                }
-            }
-            .padding(.horizontal, 18)
-            .padding(.bottom, 24)
+            scrollContent
         }
         .tidyScreen()
-        .modifier(RemoveFlow(items: removable.items, selected: removable.selected, noun: removable.noun))
+        .modifier(RemoveFlow(items: target.items, selected: target.selected, noun: target.noun))
         .safeAreaInset(edge: .bottom, spacing: 0) {
             fileBar
         }
@@ -37,6 +20,31 @@ struct ClutterTab: View {
             if model.clutterSection == .screenshots && !model.screenshotsLoaded {
                 await model.loadScreenshots()
             }
+        }
+    }
+
+    private var scrollContent: some View {
+        @Bindable var model = model
+        return VStack(alignment: .leading, spacing: 18) {
+            ScreenHeader(title: "Clutter", subtitle: "Photos that don't need to stay")
+            SectionChips(items: ClutterSection.allCases, selection: $model.clutterSection)
+            sectionView
+        }
+        .padding(.horizontal, 18)
+        .padding(.bottom, 24)
+    }
+
+    @ViewBuilder
+    private var sectionView: some View {
+        switch model.clutterSection {
+        case .blurry:
+            BlurrySection()
+        case .duplicates:
+            DuplicatesSection()
+        case .screenshots:
+            ScreenshotsSection()
+        case .receipts:
+            ReceiptsSection()
         }
     }
 
@@ -56,9 +64,11 @@ struct ClutterTab: View {
 
     @ViewBuilder
     private var fileBar: some View {
-        let ids = model.receiptSelected.intersection(Set(model.receipts.map { $0.id }))
-        if model.clutterSection == .receipts && !ids.isEmpty && !model.isFiling && !model.isReceiptScanning {
-            Button(ids.count == 1 ? "File 1 receipt" : "File \(ids.count) receipts") {
+        let ids: Set<String> = model.receiptSelected.intersection(Set(model.receipts.map { $0.id }))
+        let showing: Bool = model.clutterSection == .receipts && !ids.isEmpty && !model.isFiling && !model.isReceiptScanning
+        if showing {
+            let title: String = "File " + counted(ids.count, "receipt", "receipts")
+            Button(title) {
                 Task { await model.fileReceipts(ids) }
             }
             .buttonStyle(PrimaryButtonStyle())
@@ -255,7 +265,7 @@ struct DuplicateSetCard: View {
                             .font(.caption)
                             .foregroundStyle(Tidy.muted)
                     }
-                    Text(set.copies.count == 1 ? "1 copy" : "\(set.copies.count) copies")
+                    Text(counted(set.copies.count, "copy", "copies"))
                         .font(.tidySerif(26))
                         .foregroundStyle(Tidy.ink)
                     Text("Keeping the \(set.keeper.asset.pixelWidth) × \(set.keeper.asset.pixelHeight) original")

@@ -201,3 +201,8 @@ func formatDuration(_ seconds: Double) -> String {
     }
     return String(format: "%d:%02d", m, s)
 }
+
+/// "1 photo" / "7 photos" as a plain string.
+func counted(_ n: Int, _ one: String, _ many: String) -> String {
+    n == 1 ? "1 \(one)" : "\(n) \(many)"
+}
