@@ -108,22 +108,57 @@ struct LooseItem: Identifiable {
     let asset: PHAsset
     /// Space it takes on the phone (0 if unknown).
     let bytes: Int64
-    /// Blurry list: edge strength (lower = blurrier). Videos: length in seconds.
+    /// Blurry: edge strength (lower = blurrier). Videos: length in seconds.
+    /// Live Photos: bytes saved by shrinking.
     let metric: Double
+    /// A face or person is in the photo (Blurry list only).
+    var hasPeople: Bool = false
 
     var id: String { asset.localIdentifier }
 }
 
 enum AppTab: Hashable {
     case similar
-    case blurry
-    case screenshots
-    case videos
+    case clutter
+    case space
+    case phone
+}
+
+enum ClutterSection: String, CaseIterable, Identifiable {
+    case blurry = "Blurry"
+    case duplicates = "Duplicates"
+    case screenshots = "Screenshots"
+    case receipts = "Receipts"
+    var id: Self { self }
+}
+
+enum SpaceSection: String, CaseIterable, Identifiable {
+    case videos = "Videos"
+    case recordings = "Recordings"
+    case livePhotos = "Live Photos"
+    var id: Self { self }
+}
+
+enum PhoneSection: String, CaseIterable, Identifiable {
+    case files = "Files"
+    case contacts = "Contacts"
+    case reminders = "Reminders"
+    case checklist = "Checklist"
+    var id: Self { self }
+}
+
+/// Identical copies of one photo. The keeper stays; the copies are offered for removal.
+struct DuplicateSet: Identifiable {
+    let id = UUID()
+    var keeper: LooseItem
+    var copies: [LooseItem]
 }
 
 enum ScanKind {
     case similar
     case blurry
+    case duplicates
+    case receipts
 }
 
 /// Filter for the screenshots list.

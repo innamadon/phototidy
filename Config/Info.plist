@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSContactsUsageDescription</key>
+	<string>Photo Tidy looks for contacts saved more than once so you can merge them. Nothing leaves your phone.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Photo Tidy finds completed reminders older than a month so you can clear them. Nothing leaves your phone.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Photo Tidy finds completed reminders older than a month so you can clear them. Nothing leaves your phone.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Photo Tidy finds one-off events that ended more than two years ago so you can clear them. Nothing leaves your phone.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Photo Tidy finds one-off events that ended more than two years ago so you can clear them. Nothing leaves your phone.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>CormorantGaramond-Regular.ttf</string>
+		<string>CormorantGaramond-Italic.ttf</string>
+		<string>CormorantGaramond-Medium.ttf</string>
+	</array>
+</dict>
+</plist>

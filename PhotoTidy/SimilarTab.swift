@@ -86,7 +86,7 @@ struct SimilarHero: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        StoneCard(stone: .bronze, title: title, detail: detail) {
+        StoneCard(stone: .similar, title: title, detail: detail) {
             content
         }
         .animation(Tidy.spring, value: model.isScanning)

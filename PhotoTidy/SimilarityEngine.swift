@@ -108,7 +108,8 @@ struct SimilarityEngine: Sendable {
                 if analysis.edgePeak < Self.blurCeiling {
                     found.append(LooseItem(asset: asset,
                                            bytes: ImageLoader.fileSize(of: asset),
-                                           metric: analysis.edgePeak))
+                                           metric: analysis.edgePeak,
+                                           hasPeople: analysis.hasPeople))
                 }
             }
             if !found.isEmpty {
@@ -215,9 +216,11 @@ struct SimilarityEngine: Sendable {
         let featureRequest = VNGenerateImageFeaturePrintRequest()
         featureRequest.imageCropAndScaleOption = .scaleFill
         let faceRequest = VNDetectFaceCaptureQualityRequest()
+        let humanRequest = VNDetectHumanRectanglesRequest()
+        humanRequest.upperBodyOnly = false
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
         do {
-            try handler.perform([featureRequest, faceRequest])
+            try handler.perform([featureRequest, faceRequest, humanRequest])
         } catch {
             return nil
         }
@@ -238,6 +241,11 @@ struct SimilarityEngine: Sendable {
             faceQuality = 0.5 * average + 0.5 * worst
         }
 
+        // Anyone in the shot at all? (Used to keep blurry photos of people.)
+        let faceCount = faceRequest.results?.count ?? 0
+        let confidentHumans = (humanRequest.results ?? []).filter { $0.confidence > 0.5 }
+        let hasPeople = faceCount > 0 || !confidentHumans.isEmpty
+
         let metrics = ImageMetrics.measure(cgImage)
 
         // Apple's built-in "how good does this photo look" score (iOS 18+).
@@ -253,6 +261,7 @@ struct SimilarityEngine: Sendable {
                                      sharpness: metrics.sharpness,
                                      exposure: metrics.exposure,
                                      edgePeak: metrics.edgePeak,
+                                     hasPeople: hasPeople,
                                      faceQuality: faceQuality,
                                      aesthetic: aesthetic)
         cache.store(analysis, for: asset)

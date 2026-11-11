@@ -4,6 +4,8 @@ struct SettingsSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var cleared = false
+    @State private var testing = false
+    @State private var testResult: String?
 
     var body: some View {
         @Bindable var model = model
@@ -29,7 +31,7 @@ struct SettingsSheet: View {
                 } header: {
                     Text("Scans")
                 } footer: {
-                    Text("Used by the Similar and Blurry scans. Start small; the first scan of a range is the slow one.")
+                    Text("Used by the Similar, Blurry, Duplicates and Receipts scans. Start small; the first scan of a range is the slow one.")
                 }
 
                 Section {
@@ -50,6 +52,41 @@ struct SettingsSheet: View {
                     Text("Similar photos")
                 } footer: {
                     Text("Groups mixing different scenes? Slide toward Strict. Obvious look-alikes missed? Slide toward Loose. Changes apply to the next scan.")
+                }
+
+                Section {
+                    Toggle("Keep photos with people", isOn: $model.keepBlurryPeople)
+                } header: {
+                    Text("Blurry photos")
+                } footer: {
+                    Text("When on, blurry shots with a face or a person in them are never suggested.")
+                }
+
+                Section {
+                    TextField("https://mydesktop.tail1234.ts.net", text: $model.filerAddress)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .onChange(of: model.filerAddress) { _, _ in
+                            testResult = nil
+                        }
+                    Button(testing ? "Checking…" : "Test connection") {
+                        testing = true
+                        Task {
+                            testResult = await model.testFiler()
+                            testing = false
+                        }
+                    }
+                    .disabled(testing || model.filerAddress.isEmpty)
+                    if let testResult {
+                        Text(testResult)
+                            .font(.footnote)
+                            .foregroundStyle(Tidy.muted)
+                    }
+                } header: {
+                    Text("Receipt filer")
+                } footer: {
+                    Text("The address your iPhone uses to open the receipt filer. It's shown in the filer's window on your PC when it starts. Tailscale needs to be on on this iPhone when you file receipts.")
                 }
 
                 Section {
