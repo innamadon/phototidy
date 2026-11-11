@@ -9,6 +9,8 @@ struct PhotoAnalysis: Sendable {
     var exposure: Double
     /// Strength of the crispest edges (0…1020). Low = nothing in the photo is sharp.
     var edgePeak: Double
+    /// A face or a person was found anywhere in the photo.
+    var hasPeople: Bool
     var faceQuality: Double?   // nil = no faces
     var aesthetic: Double?     // 0…1, iOS 18+
 }
@@ -23,6 +25,7 @@ final class AnalysisCache: @unchecked Sendable {
         var sharpness: Double
         var exposure: Double
         var edgePeak: Double
+        var hasPeople: Bool
         var faceQuality: Double?
         var aesthetic: Double?
     }
@@ -34,7 +37,7 @@ final class AnalysisCache: @unchecked Sendable {
 
     private var fileURL: URL {
         let folder = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-        return folder.appendingPathComponent("photo-analysis-v3.plist")
+        return folder.appendingPathComponent("photo-analysis-v4.plist")
     }
 
     func loadIfNeeded() {
@@ -67,6 +70,7 @@ final class AnalysisCache: @unchecked Sendable {
                              sharpness: entry.sharpness,
                              exposure: entry.exposure,
                              edgePeak: entry.edgePeak,
+                             hasPeople: entry.hasPeople,
                              faceQuality: entry.faceQuality,
                              aesthetic: entry.aesthetic)
     }
@@ -77,6 +81,7 @@ final class AnalysisCache: @unchecked Sendable {
                           sharpness: analysis.sharpness,
                           exposure: analysis.exposure,
                           edgePeak: analysis.edgePeak,
+                          hasPeople: analysis.hasPeople,
                           faceQuality: analysis.faceQuality,
                           aesthetic: analysis.aesthetic)
         lock.lock()

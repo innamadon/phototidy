@@ -56,19 +56,19 @@ struct MainTabs: View {
             .tag(AppTab.similar)
 
             NavigationStack {
-                BlurryTab()
+                ClutterTab()
             }
-            .tag(AppTab.blurry)
+            .tag(AppTab.clutter)
 
             NavigationStack {
-                ScreenshotsTab()
+                SpaceTab()
             }
-            .tag(AppTab.screenshots)
+            .tag(AppTab.space)
 
             NavigationStack {
-                VideosTab()
+                PhoneTab()
             }
-            .tag(AppTab.videos)
+            .tag(AppTab.phone)
         }
         .sheet(isPresented: $model.showSettings) {
             SettingsSheet()
@@ -100,7 +100,7 @@ struct WelcomeView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            StoneTexture(stone: .bronze)
+            StoneImage(stone: .welcome)
                 .frame(height: 300)
                 .overlay {
                     LinearGradient(colors: [Tidy.paper.opacity(0.0), Tidy.paper],

@@ -344,9 +344,9 @@ struct FloatingTabBar: View {
         HStack(spacing: 10) {
             HStack(spacing: 0) {
                 item(.similar, "Similar", "square.on.square")
-                item(.blurry, "Blurry", "camera.filters")
-                item(.screenshots, "Shots", "iphone")
-                item(.videos, "Videos", "video")
+                item(.clutter, "Clutter", "tray")
+                item(.space, "Space", "internaldrive")
+                item(.phone, "Phone", "iphone")
             }
             .padding(6)
             .background(Tidy.raised.opacity(0.92), in: Capsule())
@@ -399,38 +399,38 @@ struct FloatingTabBar: View {
 
 // MARK: - Stone hero card
 
-/// Which stone a card is cut from. Each tab has its own.
+/// Which stone photo a card shows. Each tab has its own crop.
 enum Stone {
-    case bronze     // warm strata with pale gold veins
-    case slate      // blue-grey strata
-    case clay       // ochre and terracotta earth
-    case obsidian   // near-black with bronze veins
+    case similar
+    case clutter
+    case space
+    case phone
+    case welcome
 
-    var seed: Float {
+    var imageName: String {
         switch self {
-        case .bronze: return 0
-        case .slate: return 1
-        case .clay: return 2
-        case .obsidian: return 3
+        case .similar: return "stone-similar"
+        case .clutter: return "stone-clutter"
+        case .space: return "stone-space"
+        case .phone: return "stone-phone"
+        case .welcome: return "stone-welcome"
         }
     }
+}
 
-    /// dark, mid, light, vein
-    var colors: [Color] {
-        switch self {
-        case .bronze:
-            return [Color(red: 0.23, green: 0.18, blue: 0.15), Color(red: 0.54, green: 0.42, blue: 0.27),
-                    Color(red: 0.79, green: 0.65, blue: 0.43), Color(red: 0.95, green: 0.87, blue: 0.69)]
-        case .slate:
-            return [Color(red: 0.10, green: 0.13, blue: 0.19), Color(red: 0.30, green: 0.36, blue: 0.43),
-                    Color(red: 0.58, green: 0.63, blue: 0.66), Color(red: 0.87, green: 0.80, blue: 0.62)]
-        case .clay:
-            return [Color(red: 0.27, green: 0.19, blue: 0.14), Color(red: 0.60, green: 0.40, blue: 0.27),
-                    Color(red: 0.82, green: 0.64, blue: 0.46), Color(red: 0.95, green: 0.89, blue: 0.79)]
-        case .obsidian:
-            return [Color(red: 0.05, green: 0.07, blue: 0.11), Color(red: 0.14, green: 0.16, blue: 0.20),
-                    Color(red: 0.27, green: 0.27, blue: 0.27), Color(red: 0.72, green: 0.57, blue: 0.34)]
+/// A stone photo that fills its frame.
+struct StoneImage: View {
+    let stone: Stone
+
+    var body: some View {
+        GeometryReader { proxy in
+            Image(stone.imageName)
+                .resizable()
+                .scaledToFill()
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .clipped()
         }
+        .accessibilityHidden(true)
     }
 }
 
@@ -479,11 +479,11 @@ struct StoneCard<Content: View>: View {
         .frame(maxWidth: .infinity, minHeight: 186, alignment: .bottomLeading)
         .background {
             ZStack {
-                StoneTexture(stone: stone)
+                StoneImage(stone: stone)
                 // The stone sinks into midnight navy, where the text sits.
                 LinearGradient(colors: [Color(red: 0.04, green: 0.06, blue: 0.12).opacity(0.0),
-                                        Color(red: 0.04, green: 0.06, blue: 0.12).opacity(0.62)],
-                               startPoint: UnitPoint(x: 0.5, y: 0.25),
+                                        Color(red: 0.04, green: 0.06, blue: 0.12).opacity(0.78)],
+                               startPoint: UnitPoint(x: 0.5, y: 0.15),
                                endPoint: .bottom)
             }
         }

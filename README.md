@@ -46,37 +46,44 @@ Things to know:
 
 ## Using the app
 
-The floating bar at the bottom has four places and a Settings button.
+The floating bar at the bottom has four tabs and a Settings button. Each tab has small pills at the top to switch between its parts.
 
 **Similar** — look-alike photos
 1. Tap **Find look-alikes**. Groups ("moments") appear while it scans, newest first. Keep the app open during a scan.
 2. Tap **Review one by one**. In each group the suggested keeper is on top, marked **Best**.
-   - Tap a photo to switch it between keep and let go. Photos you're letting go fade to grey.
-   - Tap the corner arrows to compare full screen: pinch to zoom, **hold "Hold for Best"** to flip to the best shot, and turn on **Focus check** to light up the parts that are truly sharp.
-   - Tap **Looks good — next** to move on. The red brush line shows how far through you are.
-3. Back on the Similar screen, tap **Delete … extras**. iOS asks once to confirm.
+   - Tap a photo to switch it between keep and let go.
+   - Tap the corner arrows to compare full screen: pinch to zoom, hold **Hold for Best** to flip to the best shot, and turn on **Focus check** to see what's truly sharp.
+   - Tap **Looks good — next** to move on.
+3. Back on Similar, tap **Delete … extras**. iOS asks once to confirm.
 
-**Blurry** — photos where nothing is in focus
-- Tap **Find blurry photos**. Nothing is pre-marked; tap the ones to remove, or **Mark all**.
-- The **Fewer / More** slider decides how soft a photo has to be to show up. Favorites are never suggested.
-- Press and hold a photo to see it larger.
+**Clutter**
+- **Blurry:** photos where nothing is in focus. Photos with people are kept (switch this in Settings). The Fewer / More slider decides how soft a photo must be to show up. Favorites are never suggested.
+- **Duplicates:** identical copies of the same photo, including ones re-saved smaller by a messaging app. The best copy is kept; the rest are marked.
+- **Screenshots:** oldest first, with an age filter.
+- **Receipts:** finds photos of receipts and marks them. **File** adds them to a **Receipts** album and sends them to your receipt filer on the PC. Each receipt is only sent once; sent ones show a "Sent" label.
 
-**Shots** — screenshots, oldest first, with an age filter (all, 1 month+, 6 months+, 1 year+).
+**Space**
+- **Videos:** heaviest first. Mark some, then **Delete** or **Shrink** (re-saves them smaller, up to 1080p HD, at nearly the same quality).
+- **Recordings:** screen recordings, biggest first.
+- **Live Photos:** **Shrink** keeps the still photo and drops its short video, roughly halving the size.
+- Shrinking keeps the date, place, favourite and albums. iOS asks once per batch to delete the originals; if you tap Don't Allow, nothing in that batch changes. Slow-motion videos are left alone.
 
-**Videos** — every video, heaviest first. Tap a row to mark it; tap the picture to play it.
+**Phone**
+- **Files:** pick a folder in Files (Downloads, iCloud Drive, On My iPhone) to see the biggest files, files untouched for a year, and identical copies (the original of each is never listed). Nothing is marked until you mark it.
+- **Contacts:** finds cards saved more than once (same name, number or email) and merges them into one.
+- **Reminders:** clears completed reminders older than a month and one-off events that ended more than two years ago. Repeating events, birthdays and subscribed calendars are left alone.
+- **Checklist:** the things only you can do in Settings (Messages attachments, offloading apps, Safari data, emptying Recently Deleted…), with ticks that are remembered.
 
 **Settings**
 - **Appearance:** match the iPhone, light (cream paper) or dark (midnight navy).
-- **Look through:** last 30 days, 3 months, a year, or everything. Used by the Similar and Blurry scans. Start with 30 days.
-- **Shots taken within / How alike / Include screenshots:** tune what counts as a look-alike. If groups mix different scenes, slide toward Strict; if obvious look-alikes are missed, slide toward Loose.
-- **Move to an album instead:** when on, removing sends items to a "Photo Tidy – To Review" album and deletes nothing. (This needs full photo access.)
-- **Clear saved scan data:** the app remembers what it measured so later scans only look at new or edited photos. Clearing it never touches your photos.
+- **Look through:** the time range for the Similar, Blurry, Duplicates and Receipts scans. Start with 30 days.
+- **Similar photos:** how far apart shots can be, how alike they must be, and whether to include screenshots.
+- **Blurry photos → Keep photos with people.**
+- **Receipt filer:** the `https://…ts.net` address you open on your iPhone to reach the filer. It's shown in the filer's window on your PC when it starts (or run `tailscale serve status` there). Tap **Test connection** to check it. Tailscale must be on on the iPhone when you file receipts.
+- **Move to an album instead:** removing sends things to a "Photo Tidy – To Review" album and deletes nothing.
+- **Clear saved scan data:** the app remembers what it measured so later scans are quick. Clearing never touches your photos.
 
-Deleted items wait in **Recently Deleted** for 30 days. To get the storage back the same day, open Photos → Albums → Recently Deleted → Delete All.
-
-How the best shot is chosen: sharpness, faces (the worst face counts extra, so one blink costs a lot), lighting, resolution, and on iOS 18 or later Apple's own "how good does this look" score. Favorites always win; edited photos get a small boost.
-
-The first scan is the slow one, especially when photos are stored in iCloud and have to download.
+Deleted photos wait in **Recently Deleted** for 30 days. To get the storage back the same day, open Photos → Albums → Recently Deleted → Delete All.
 
 ---
 
@@ -89,15 +96,17 @@ Open `PhotoTidy.xcodeproj` in Xcode 16 or later, pick your Team under **Signing 
 | File | What it does |
 |---|---|
 | `.github/workflows/build.yml` | Tells GitHub how to build PhotoTidy.ipa |
-| `PhotoTidy/SimilarityEngine.swift` | Finds look-alike groups, ranks photos, finds blurry ones |
-| `PhotoTidy/AnalysisCache.swift` | Remembers measurements between scans |
-| `PhotoTidy/ImageMetrics.swift` | Sharpness, edge strength and lighting measures |
-| `PhotoTidy/LibraryTools.swift` | Lists screenshots and videos; deletes or moves to the album |
-| `PhotoTidy/AppModel.swift` | Settings, scan state, picks, removing |
-| `PhotoTidy/ContentView.swift` | Tabs, welcome screen, the "cleared" summary |
-| `PhotoTidy/SimilarTab.swift`, `GroupReviewView.swift`, `PhotoViewer.swift` | Similar tab, reviewing a group, full-screen compare |
-| `PhotoTidy/LibraryTabs.swift` | Blurry, Screenshots and Videos tabs |
-| `PhotoTidy/SettingsSheet.swift` | Settings |
-| `PhotoTidy/Theme.swift` | Colours, type, buttons, cards, brush line, floating tab bar |
-| `PhotoTidy/Shaders.metal`, `Effects.swift` | Stone texture and focus check (drawn on the GPU) |
+| `Config/Info.plist` | Permission messages for Contacts, Reminders and Calendars |
+| `PhotoTidy/SimilarityEngine.swift`, `AnalysisCache.swift`, `ImageMetrics.swift` | Look-alike groups, best-shot ranking, blur and people detection |
+| `PhotoTidy/PhotoScanners.swift` | Receipt and exact-duplicate finders |
+| `PhotoTidy/MediaShrinker.swift` | Shrinking Live Photos and videos |
+| `PhotoTidy/FilerClient.swift` | Sending receipts to the receipt filer |
+| `PhotoTidy/LibraryTools.swift` | Screenshot, video, recording and Live Photo lists; deleting and albums |
+| `PhotoTidy/PhoneTools.swift` | Files, contacts, reminders/events and the checklist |
+| `PhotoTidy/AppModel.swift` | Settings and everything the screens show |
+| `PhotoTidy/SimilarTab.swift`, `ClutterTab.swift`, `SpaceTab.swift`, `PhoneTab.swift` | The four tabs |
+| `PhotoTidy/GroupReviewView.swift`, `PhotoViewer.swift` | Reviewing a group and full-screen compare |
+| `PhotoTidy/SharedViews.swift`, `Theme.swift`, `ContentView.swift`, `SettingsSheet.swift` | Shared pieces, look, welcome screen, settings |
+| `PhotoTidy/Shaders.metal`, `Effects.swift` | The focus check (drawn on the GPU) |
+| `PhotoTidy/Assets.xcassets` | App icon and the stone photos |
 | `PhotoTidy/Fonts/` | Cormorant Garamond, the headline serif (SIL Open Font License, included) |
